@@ -1,94 +1,103 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using Photon.Pun;
 using UnityEngine;
 
 namespace CMF
 {
-	//This script controls the character's animation by passing velocity values and other information ('isGrounded') to an animator component;
-	public class AnimationControl : MonoBehaviour {
+    //This script controls the character's animation by passing velocity values and other information ('isGrounded') to an animator component;
+    public class AnimationControl : MonoBehaviour
+    {
 
-		Controller controller;
-		Animator animator;
-		Transform animatorTransform;
-		Transform tr;
+        Controller controller;
+        Animator animator;
+        Transform animatorTransform;
+        Transform tr;
 
-		//Whether the character is using the strafing blend tree;
-		public bool useStrafeAnimations = false;
+        //Whether the character is using the strafing blend tree;
+        public bool useStrafeAnimations = false;
 
-		//Velocity threshold for landing animation;
-		//Animation will only be triggered if downward velocity exceeds this threshold;
-		public float landVelocityThreshold = 5f;
+        //Velocity threshold for landing animation;
+        //Animation will only be triggered if downward velocity exceeds this threshold;
+        public float landVelocityThreshold = 5f;
 
-		private float smoothingFactor = 40f;
-		Vector3 oldMovementVelocity = Vector3.zero;
+        private float smoothingFactor = 40f;
+        Vector3 oldMovementVelocity = Vector3.zero;
+        PhotonView view;
+        //Setup;
+        void Awake()
+        {
+            view = GetComponent<PhotonView>();
 
-		//Setup;
-		void Awake () {
-			controller = GetComponent<Controller>();
-			animator = GetComponentInChildren<Animator>();
-			animatorTransform = animator.transform;
+            controller = GetComponent<Controller>();
+            animator = GetComponentInChildren<Animator>();
+            animatorTransform = animator.transform;
 
-			tr = transform;
-		}
+            tr = transform;
+        }
 
-		//OnEnable;
-		void OnEnable()
-		{
-			//Connect events to controller events;
-			controller.OnLand += OnLand;
-			controller.OnJump += OnJump;
-		}
+        //OnEnable;
+        void OnEnable()
+        {
+            //Connect events to controller events;
+            controller.OnLand += OnLand;
+            controller.OnJump += OnJump;
+        }
 
-		//OnDisable;
-		void OnDisable()
-		{
-			//Disconnect events to prevent calls to disabled gameobjects;
-			controller.OnLand -= OnLand;
-			controller.OnJump -= OnJump;
-		}
-		
-		//Update;
-		void Update () {
+        //OnDisable;
+        void OnDisable()
+        {
+            //Disconnect events to prevent calls to disabled gameobjects;
+            controller.OnLand -= OnLand;
+            controller.OnJump -= OnJump;
+        }
 
-			//Get controller velocity;
-			Vector3 _velocity = controller.GetVelocity();
+        //Update;
+        void Update()
+        {
+            if (!view.IsMine)
+            {
+                return;
+            }
+            //Get controller velocity;
+            Vector3 _velocity = controller.GetVelocity();
 
-			//Split up velocity;
-			Vector3 _horizontalVelocity = VectorMath.RemoveDotVector(_velocity, tr.up);
-			Vector3 _verticalVelocity = _velocity - _horizontalVelocity;
+            //Split up velocity;
+            Vector3 _horizontalVelocity = VectorMath.RemoveDotVector(_velocity, tr.up);
+            Vector3 _verticalVelocity = _velocity - _horizontalVelocity;
 
-			//Smooth horizontal velocity for fluid animation;
-			_horizontalVelocity = Vector3.Lerp(oldMovementVelocity, _horizontalVelocity, smoothingFactor * Time.deltaTime);
-			oldMovementVelocity = _horizontalVelocity;
+            //Smooth horizontal velocity for fluid animation;
+            _horizontalVelocity = Vector3.Lerp(oldMovementVelocity, _horizontalVelocity, smoothingFactor * Time.deltaTime);
+            oldMovementVelocity = _horizontalVelocity;
 
-			animator.SetFloat("VerticalSpeed", _verticalVelocity.magnitude * VectorMath.GetDotProduct(_verticalVelocity.normalized, tr.up));
-			animator.SetFloat("HorizontalSpeed", _horizontalVelocity.magnitude);
+            animator.SetFloat("VerticalSpeed", _verticalVelocity.magnitude * VectorMath.GetDotProduct(_verticalVelocity.normalized, tr.up));
+            animator.SetFloat("HorizontalSpeed", _horizontalVelocity.magnitude);
 
-			//If animator is strafing, split up horizontal velocity;
-			if(useStrafeAnimations)
-			{
-				Vector3 _localVelocity = animatorTransform.InverseTransformVector(_horizontalVelocity);
-				animator.SetFloat("ForwardSpeed", _localVelocity.z);
-				animator.SetFloat("StrafeSpeed", _localVelocity.x);
-			}
+            //If animator is strafing, split up horizontal velocity;
+            if (useStrafeAnimations)
+            {
+                Vector3 _localVelocity = animatorTransform.InverseTransformVector(_horizontalVelocity);
+                animator.SetFloat("ForwardSpeed", _localVelocity.z);
+                animator.SetFloat("StrafeSpeed", _localVelocity.x);
+            }
 
-			//Pass values to animator;
-			animator.SetBool("IsGrounded", controller.IsGrounded());
-			animator.SetBool("IsStrafing", useStrafeAnimations);
-		}
+            //Pass values to animator;
+            animator.SetBool("IsGrounded", controller.IsGrounded());
+            animator.SetBool("IsStrafing", useStrafeAnimations);
+        }
 
-		void OnLand(Vector3 _v)
-		{
-			//Only trigger animation if downward velocity exceeds threshold;
-			if(VectorMath.GetDotProduct(_v, tr.up) > -landVelocityThreshold)
-				return;
+        void OnLand(Vector3 _v)
+        {
+            //Only trigger animation if downward velocity exceeds threshold;
+            if (VectorMath.GetDotProduct(_v, tr.up) > -landVelocityThreshold)
+                return;
 
-			animator.SetTrigger("OnLand");
-		}
+            animator.SetTrigger("OnLand");
+        }
 
-		void OnJump(Vector3 _v)
-		{
-			
-		}
-	}
+        void OnJump(Vector3 _v)
+        {
+
+        }
+    }
 }
