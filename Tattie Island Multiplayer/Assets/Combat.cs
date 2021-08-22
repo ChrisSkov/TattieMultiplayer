@@ -22,6 +22,15 @@ public class Combat : MonoBehaviour
 
     }
 
+    public void OnAttack(InputAction.CallbackContext ctx)
+    {
+        if(!view.IsMine) return;
+        if(ctx.performed)
+        {
+            gameObject.GetComponentInChildren<Animator>().SetTrigger("Attack");
+        }
+        
+    }
     public void OnShootCrossbow(InputAction.CallbackContext ctx)
     {
         if (view.IsMine)
